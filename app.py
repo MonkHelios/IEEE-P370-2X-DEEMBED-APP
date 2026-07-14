@@ -7,6 +7,13 @@ import tempfile
 import os
 import datetime # Import datetime for current date
 
+# Resilient import for IEEE P370 classes
+try:
+    from skrf.calibration.p370 import IEEEP370_SE_NZC_2xThru
+except ImportError:
+    # Fallback for older skrf versions if needed, though p370 is standard now
+    from skrf.calibration import IEEEP370_SE_NZC_2xThru
+
 st.set_page_config(page_title="IEEE P370 De-Embedding Engine", layout="wide", menu_items={'About': ''})
 
 def plot_s_params(network, title, comparison_network=None):
@@ -161,7 +168,7 @@ if len(thru_networks) > 0:
     if fixture_type == 1 and len(thru_networks) == 1:
         if st.button("Generate 1x S-Parameter for Fixture A (Symmetric)", key="generate_1x_s_params_sym"):
             try:
-                deembedder_1x = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='1x_symmetric_deembed')
+                deembedder_1x = IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='1x_symmetric_deembed')
                 fixture_a_1x = deembedder_1x.s_side1
                 fixture_a_1x.name = "Fixture A (1x)"
                 st.session_state['fixture_a_1x'] = fixture_a_1x
@@ -175,7 +182,7 @@ if len(thru_networks) > 0:
         with col_gen_a:
             if st.button("Generate 1x S-Parameter for Fixture A", key="generate_1x_s_params_a"):
                 try:
-                    deembed_a_1x = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='1x_a_split')
+                    deembed_a_1x = IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='1x_a_split')
                     fixture_a_1x = deembed_a_1x.s_side1
                     fixture_a_1x.name = "Fixture A (1x)"
                     st.session_state['fixture_a_1x'] = fixture_a_1x
@@ -185,7 +192,7 @@ if len(thru_networks) > 0:
         with col_gen_b:
             if st.button("Generate 1x S-Parameter for Fixture B", key="generate_1x_s_params_b"):
                 try:
-                    deembed_b_1x = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[1], name='1x_b_split')
+                    deembed_b_1x = IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[1], name='1x_b_split')
                     fixture_b_1x = deembed_b_1x.s_side1
                     fixture_b_1x.name = "Fixture B (1x)"
                     st.session_state['fixture_b_1x'] = fixture_b_1x
@@ -294,7 +301,7 @@ if st.button("Run IEEE P370 De-embedding", type="primary"):
                 # V1 Execution: Non-Impedance Corrected (NZC) Split
                 if fixture_type == 1:
                     # Symmetric: Split single 2X thru into left/right halves
-                    deembedder = rf.IEEEP370_SE_NZC_2xThru(
+                    deembedder = IEEEP370_SE_NZC_2xThru(
                         dummy_2xthru=thru_networks[0],
                         name='symmetric_deembed'
                     )
@@ -302,12 +309,13 @@ if st.button("Run IEEE P370 De-embedding", type="primary"):
                     fixture_r = deembedder.s_side2
                 else:
                     # Asymmetric: Split thru A for left, thru B for right
-                    deembed_a = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='a_split')
-                    deembed_b = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[1], name='b_split')
+                    deembed_a = IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='a_split')
+                    deembed_b = IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[1], name='b_split')
                     fixture_l = deembed_a.s_side1
                     fixture_r = deembed_b.s_side1 # Using left side of B-thru for right DUT fixture
 
                 # Perform generic Network de-embedding via cascading inverses
+                composite_ntwk = load_touchstone(composite_file)
                 dut_extracted = fixture_l.inv ** composite_ntwk ** fixture_r.inv
                 dut_extracted.name = "De-embedded_DUT"
 
