@@ -1,6 +1,6 @@
-
 import streamlit as st
 import skrf as rf
+from skrf.calibration import IEEEP370_SE_NZC_2xThru # Corrected import path
 import matplotlib.pyplot as plt
 import io
 import tempfile
@@ -113,7 +113,7 @@ st.image("P370_Block.JPG", caption="Block Diagram: Fixture A - DUT - Fixture B",
 fixture_type = st.radio(
     "How many distinct fixture types require de-embedding?",
     options=[1, 2],
-    format_func=lambda x: "1 (Symmetric: Fixture A = Fixture B)" if x == 1 else "2 (Asymmetric: Fixture A ≠ Fixture B)"
+    format_func=lambda x: "1 (Symmetric: Fixture A = Fixture B)" if x == 1 else "2 (Asymmetric: Fixture A \u2260 Fixture B)"
 )
 
 # 2. Upload 2X Thru standards
@@ -161,7 +161,10 @@ if len(thru_networks) > 0:
     if fixture_type == 1 and len(thru_networks) == 1:
         if st.button("Generate 1x S-Parameter for Fixture A (Symmetric)", key="generate_1x_s_params_sym"):
             try:
-                deembedder_1x = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='1x_symmetric_deembed')
+                deembedder_1x = IEEEP370_SE_NZC_2xThru(
+                    dummy_2xthru=thru_networks[0],
+                    name='1x_symmetric_deembed'
+                )
                 fixture_a_1x = deembedder_1x.s_side1
                 fixture_a_1x.name = "Fixture A (1x)"
                 st.session_state['fixture_a_1x'] = fixture_a_1x
@@ -175,7 +178,10 @@ if len(thru_networks) > 0:
         with col_gen_a:
             if st.button("Generate 1x S-Parameter for Fixture A", key="generate_1x_s_params_a"):
                 try:
-                    deembed_a_1x = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='1x_a_split')
+                    deembed_a_1x = IEEEP370_SE_NZC_2xThru(
+                        dummy_2xthru=thru_networks[0],
+                        name='1x_a_split'
+                    )
                     fixture_a_1x = deembed_a_1x.s_side1
                     fixture_a_1x.name = "Fixture A (1x)"
                     st.session_state['fixture_a_1x'] = fixture_a_1x
@@ -185,7 +191,10 @@ if len(thru_networks) > 0:
         with col_gen_b:
             if st.button("Generate 1x S-Parameter for Fixture B", key="generate_1x_s_params_b"):
                 try:
-                    deembed_b_1x = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[1], name='1x_b_split')
+                    deembed_b_1x = IEEEP370_SE_NZC_2xThru(
+                        dummy_2xthru=thru_networks[1],
+                        name='1x_b_split'
+                    )
                     fixture_b_1x = deembed_b_1x.s_side1
                     fixture_b_1x.name = "Fixture B (1x)"
                     st.session_state['fixture_b_1x'] = fixture_b_1x
@@ -285,7 +294,7 @@ if st.button("Run IEEE P370 De-embedding", type="primary"):
                 # By treating the fixture as cascaded transmission line segments, it
                 # mathematically "peels" away layers to quantify local impedance variations.
                 #
-                # Application Point: This algorithm must execute exactly here—BEFORE
+                # Application Point: This algorithm must execute exactly here\u2014BEFORE
                 # matrix bisection. It compares the Z_0(t) of the 2X Thru against the
                 # FIX-DUT-FIX, generating an error-correction network that normalizes
                 # the 2X Thru to match the exact physical impedance of the DUT board.
@@ -294,7 +303,7 @@ if st.button("Run IEEE P370 De-embedding", type="primary"):
                 # V1 Execution: Non-Impedance Corrected (NZC) Split
                 if fixture_type == 1:
                     # Symmetric: Split single 2X thru into left/right halves
-                    deembedder = rf.IEEEP370_SE_NZC_2xThru(
+                    deembedder = IEEEP370_SE_NZC_2xThru(
                         dummy_2xthru=thru_networks[0],
                         name='symmetric_deembed'
                     )
@@ -302,8 +311,8 @@ if st.button("Run IEEE P370 De-embedding", type="primary"):
                     fixture_r = deembedder.s_side2
                 else:
                     # Asymmetric: Split thru A for left, thru B for right
-                    deembed_a = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='a_split')
-                    deembed_b = rf.IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[1], name='b_split')
+                    deembed_a = IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[0], name='a_split')
+                    deembed_b = IEEEP370_SE_NZC_2xThru(dummy_2xthru=thru_networks[1], name='b_split')
                     fixture_l = deembed_a.s_side1
                     fixture_r = deembed_b.s_side1 # Using left side of B-thru for right DUT fixture
 
@@ -345,3 +354,9 @@ if st.button("Run IEEE P370 De-embedding", type="primary"):
 
             except Exception as e:
                 st.error(f"Mathematical execution failed: {e}")
+
+
+with open("app.py", "w") as f:
+    f.write(app_code)
+
+print("app.py has been created.")
